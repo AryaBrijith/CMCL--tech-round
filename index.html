@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK Flood Monitoring Tool</title>
+    <style>
+        :root {
+            --primary-color: #0277bd;
+            --secondary-color: #0091ea;
+            --background-color: #f5f5f5;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 500;
+        }
+        
+        .card {
+            background-color: var(--card-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-title {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .instructions {
+            margin-bottom: 1rem;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .select-wrapper {
+            flex-grow: 1;
+            position: relative;
+        }
+        
+        select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+            font-size: 16px;
+            cursor: pointer;
+            appearance: none;
+        }
+        
+        .select-wrapper::after {
+            content: '▼';
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 10px;
+            pointer-events: none;
+            color: #777;
+        }
+        
+        button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: var(--primary-color);
+        }
+        
+        .search-wrapper {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            width: 100%;
+        }
+        
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .chart-container {
+            height: 400px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: white;
+            border: 1px solid var(--border-color);
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 2rem;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        th {
+            background-color: #f9f9f9;
+            font-weight: 500;
+        }
+        
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .loading-spinner div {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 4px solid var(--primary-color);
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .message {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+        
+        .info {
+            background-color: #e3f2fd;
+            color: #0277bd;
+            border-left: 4px solid #0277bd;
+        }
+        
+        .station-details {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+            display: none;
+        }
+        
+        .footer {
+            margin-top: 3rem;
+            text-align: center;
+            color: #777;
+            font-size: 0.9rem;
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>UK Flood Monitoring Tool</h1>
+        </div>
+    </header>
+    
+    <main class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Station Selection</h2>
+            </div>
+            <div class="card-body">
+                <div class="instructions">
+                    Select a monitoring station to view its water level readings over the last 24 hours.
+                </div>
+                
+                <div class="controls">
+                    <div class="select-wrapper">
+                        <select id="stationSelect" disabled>
+                            <option value="">Loading stations...</option>
+                        </select>
+                    </div>
+                    <button id="fetchDataBtn" disabled>View Data</button>
+                </div>
+                
+                <div class="search-wrapper">
+                    <input type="text" id="searchInput" placeholder="Search stations by name or location">
+                    <button id="searchBtn">Search</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="errorMessage" class="message error" style="display: none;"></div>
+        <div id="infoMessage" class="message info" style="display: none;"></div>
+        
+        <div id="stationDetails" class="station-details">
+            <!-- Station details will be populated here -->
+        </div>
+        
+        <div id="loadingSpinner" class="loading-spinner">
+            <div></div>
+        </div>
+        
+        <div id="dataCard" class="card" style="display: none;">
+            <div class="card-header">
+                <h2 class="card-title">Water Level Readings (Last 24 Hours)</h2>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="chartContainer"></canvas>
+                    <!-- Chart will be rendered here -->
+                </div>
+                
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Reading Value</th>
+                                <th>Parameter</th>
+                                <th>Unit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="readingsTableBody">
+                            <!-- Data rows will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="footer">
+        <div class="container">
+            <p>Data provided by the UK Environment Agency's Real-Time Flood Monitoring API</p>
+        </div>
+    </footer>
+    
+    <!-- Chart.js library and required adapters for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.1/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.2.0/dist/chartjs-adapter-luxon.min.js"></script>
+    
+    <script>
+        // DOM Elements
+        const stationSelect = document.getElementById('stationSelect');
+        const fetchDataBtn = document.getElementById('fetchDataBtn');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const infoMessage = document.getElementById('infoMessage');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const dataCard = document.getElementById('dataCard');
+        const stationDetails = document.getElementById('stationDetails');
+        const readingsTableBody = document.getElementById('readingsTableBody');
+        
+        // Chart instance
+        let chartInstance = null;
+        
+        // API endpoints
+        const API_BASE = 'https://environment.data.gov.uk/flood-monitoring';
+        const STATIONS_ENDPOINT = `${API_BASE}/id/stations?_limit=500`;
+        
+        // Store all stations for searching
+        let allStations = [];
+        
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                showLoading();
+                await loadStations();
+                hideLoading();
+                setupEventListeners();
+            } catch (error) {
+                hideLoading();
+                showError('Failed to initialize the application. Please try again later.');
+                console.error('Initialization error:', error);
+            }
+        });
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            fetchDataBtn.addEventListener('click', async () => {
+                if (stationSelect.value) {
+                    await handleStationSelection(stationSelect.value);
+                } else {
+                    showInfo('Please select a station first.');
+                }
+            });
+            
+            searchBtn.addEventListener('click', () => {
+                searchStations(searchInput.value);
+            });
+            
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchStations(searchInput.value);
+                }
+            });
+            
+            stationSelect.addEventListener('change', () => {
+                // Enable fetch button when a station is selected
+                fetchDataBtn.disabled = !stationSelect.value;
+            });
+        }
+        
+        // Load stations from API
+        async function loadStations() {
+            try {
+                const response = await fetch(STATIONS_ENDPOINT);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.items || data.items.length === 0) {
+                    throw new Error('No stations available from the API');
+                }
+                
+                // Filter stations that have measurement capabilities
+                allStations = data.items.filter(station => 
+                    station.measures && station.measures.length > 0
+                );
+                
+                // Clear and populate dropdown
+                stationSelect.innerHTML = '';
+                stationSelect.appendChild(new Option('Select a station...', ''));
+                
+                allStations.forEach(station => {
+                    const name = station.label || station.name || 'Unnamed Station';
+                    const id = station.notation || station.stationReference;
+                    const option = new Option(`${name} (${id})`, id);
+                    stationSelect.appendChild(option);
+                });
+                
+                // Enable the controls
+                stationSelect.disabled = false;
+                fetchDataBtn.disabled = true;
+                
+                showInfo(`Loaded ${allStations.length} monitoring stations. Select one to view data.`);
+                
+            } catch (error) {
+                showError('Failed to load stations. Please try again later.');
+                console.error('Error loading stations:', error);
+            }
+        }
+        
+        // Search stations
+        function searchStations(searchTerm) {
+            if (!searchTerm.trim()) {
+                showInfo('Please enter a search term.');
+                return;
+            }
+            
+            const term = searchTerm.toLowerCase();
+            
+            const matches = allStations.filter(station => {
+                const name = (station.label || station.name || '').toLowerCase();
+                const riverName = (station.riverName || '').toLowerCase();
+                const town = (station.town || '').toLowerCase();
+                
+                return name.includes(term) || riverName.includes(term) || town.includes(term);
+            });
+            
+            if (matches.length === 0) {
+                showInfo('No stations found matching your search term.');
+                return;
+            }
+            
+            // Clear and populate dropdown with search results
+            stationSelect.innerHTML = '';
+            stationSelect.appendChild(new Option(`Found ${matches.length} stations...`, ''));
+            
+            matches.forEach(station => {
+                const name = station.label || station.name || 'Unnamed Station';
+                const id = station.notation || station.stationReference;
+                let optionText = `${name} (${id})`;
+                
+                if (station.riverName) {
+                    optionText += ` - ${station.riverName}`;
+                }
+                if (station.town) {
+                    optionText += ` - ${station.town}`;
+                }
+                
+                const option = new Option(optionText, id);
+                stationSelect.appendChild(option);
+            });
+            
+            showInfo(`Found ${matches.length} stations matching "${searchTerm}".`);
+        }
+        
+        // Handle station selection
+        async function handleStationSelection(stationId) {
+            try {
+                showLoading();
+                hideMessages();
+                
+                // Find the selected station
+                const selectedStation = allStations.find(station => 
+                    (station.notation || station.stationReference) === stationId
+                );
+                
+                if (!selectedStation) {
+                    throw new Error('Station not found');
+                }
+                
+                // Display station details
+                displayStationDetails(selectedStation);
+                
+                // Fetch and display readings
+                await fetchStationReadings(stationId);
+                
+                hideLoading();
+                dataCard.style.display = 'block';
+                
+            } catch (error) {
+                hideLoading();
+                showError(`Error: ${error.message || 'Failed to fetch station data'}`);
+                dataCard.style.display = 'none';
+                console.error('Error handling station selection:', error);
+            }
+        }
+        
+        // Display station details
+        function displayStationDetails(station) {
+            const name = station.label || station.name || 'Unnamed Station';
+            const id = station.notation || station.stationReference;
+            
+            let details = `<h3>${name}</h3>`;
+            details += `<p><strong>Station ID:</strong> ${id}</p>`;
+            
+            if (station.riverName) {
+                details += `<p><strong>River:</strong> ${station.riverName}</p>`;
+            }
+            
+            if (station.town) {
+                details += `<p><strong>Location:</strong> ${station.town}</p>`;
+            }
+            
+            if (station.lat && station.long) {
+                details += `<p><strong>Coordinates:</strong> ${station.lat.toFixed(5)}, ${station.long.toFixed(5)}</p>`;
+            }
+            
+            stationDetails.innerHTML = details;
+            stationDetails.style.display = 'block';
+        }
+        
+        // Fetch station readings
+        async function fetchStationReadings(stationId) {
+            // Calculate date 24 hours ago
+            const now = new Date();
+            const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+            const since = yesterday.toISOString();
+            
+            const readingsUrl = `${API_BASE}/id/stations/${stationId}/readings?since=${since}&_sorted=true`;
+            
+            const response = await fetch(readingsUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.items || data.items.length === 0) {
+                throw new Error('No readings available for this station in the last 24 hours');
+            }
+            
+            // Process and display the readings
+            displayReadings(data.items);
+        }
+        
+        // Display readings in chart and table
+        function displayReadings(readings) {
+            // Debug: Log first reading to understand the structure
+            if (readings && readings.length > 0) {
+                console.log('Sample reading structure:', readings[0]);
+            }
+            
+            // Format data for chart
+            const chartData = prepareChartData(readings);
+            
+            // Create or update chart
+            createChart(chartData);
+            
+            // Populate table
+            populateTable(readings);
+        }
+        
+        // Prepare data for Chart.js
+        function prepareChartData(readings) {
+            // Group readings by measure type
+            const measureGroups = {};
+            
+            readings.forEach(reading => {
+                // Get parameter from measure URL - format: /id/measures/{stationRef}-{parameterName}-{qualifier}/
+                let parameter = 'Unknown';
+                
+                if (reading.measure) {
+                    // Extract from measure URL if available
+                    const measureUrlParts = reading.measure.split('/');
+                    if (measureUrlParts.length > 0) {
+                        const lastPart = measureUrlParts[measureUrlParts.length - 1];
+                        const parts = lastPart.split('-');
+                        if (parts.length > 1) {
+                            parameter = parts[1]; // The parameter name is the second part
+                        }
+                    }
+                }
+                
+                if (!measureGroups[parameter]) {
+                    measureGroups[parameter] = [];
+                }
+                
+                measureGroups[parameter].push({
+                    x: new Date(reading.dateTime),
+                    y: reading.value
+                });
+            });
+            
+            // Create datasets for each measure type
+            const datasets = Object.keys(measureGroups).map((parameter, index) => {
+                // Generate colors based on index
+                const hue = (index * 137) % 360;
+                const color = `hsl(${hue}, 70%, 60%)`;
+                
+                return {
+                    label: parameter,
+                    data: measureGroups[parameter].sort((a, b) => a.x - b.x),
+                    borderColor: color,
+                    backgroundColor: `hsla(${hue}, 70%, 60%, 0.1)`,
+                    tension: 0.1,
+                    fill: false
+                };
+            });
+            
+            return {
+                datasets
+            };
+        }
+        
+        // Create or update Chart.js chart
+        function createChart(chartData) {
+            const ctx = document.getElementById('chartContainer').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                displayFormats: {
+                                    hour: 'HH:mm'
+                                },
+                                tooltipFormat: 'yyyy-MM-dd HH:mm'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Value'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        legend: {
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Populate readings table
+        function populateTable(readings) {
+            readingsTableBody.innerHTML = '';
+            
+            // Sort readings by datetime (newest first)
+            const sortedReadings = [...readings].sort((a, b) => 
+                new Date(b.dateTime) - new Date(a.dateTime)
+            );
+            
+            // Get most recent 50 readings to avoid overwhelming the table
+            const limitedReadings = sortedReadings.slice(0, 50);
+            
+            limitedReadings.forEach(reading => {
+                const row = document.createElement('tr');
+                
+                // Format date and time
+                const dateTime = new Date(reading.dateTime);
+                const formattedDateTime = dateTime.toLocaleString();
+                
+                // Get parameter from measure URL
+                let parameter = 'Unknown';
+                if (reading.measure) {
+                    // Extract from measure URL if available
+                    const measureUrlParts = reading.measure.split('/');
+                    if (measureUrlParts.length > 0) {
+                        const lastPart = measureUrlParts[measureUrlParts.length - 1];
+                        const parts = lastPart.split('-');
+                        if (parts.length > 1) {
+                            parameter = parts[1]; // The parameter name is the second part
+                        }
+                    }
+                }
+                
+                // Create cells
+                row.innerHTML = `
+                    <td>${formattedDateTime}</td>
+                    <td>${reading.value.toFixed(2)}</td>
+                    <td>${parameter}</td>
+                    <td>${reading.unitName || '-'}</td>
+                `;
+                
+                readingsTableBody.appendChild(row);
+            });
+        }
+        
+        // Show loading spinner
+        function showLoading() {
+            loadingSpinner.style.display = 'block';
+        }
+        
+        // Hide loading spinner
+        function hideLoading() {
+            loadingSpinner.style.display = 'none';
+        }
+        
+        // Show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            infoMessage.style.display = 'none';
+        }
+        
+        // Show info message
+        function showInfo(message) {
+            infoMessage.textContent = message;
+            infoMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+        
+        // Hide all messages
+        function hideMessages() {
+            errorMessage.style.display = 'none';
+            infoMessage.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
